@@ -27,4 +27,9 @@ export class WalletController {
   ) {
     return this.walletService.deductCredits(req.user.userId, body?.credits);
   }
+
+  @Get('transactions')
+  getTransactions(@Req() req: AuthenticatedRequest) {
+    return this.walletService.getTransactions(req.user.userId);
+  }
 }

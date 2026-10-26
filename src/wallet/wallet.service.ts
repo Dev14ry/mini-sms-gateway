@@ -49,9 +49,7 @@ export class WalletService {
         throw new NotFoundException('Wallet not found');
       }
 
-      // Update only when the wallet has enough credits.
-      // This condition prevents concurrent requests from
-      // deducting more credits than the wallet contains.
+      // Deduct credits only when the balance is sufficient.
       const updateResult = await tx.wallet.updateMany({
         where: {
           id: wallet.id,
@@ -91,5 +89,39 @@ export class WalletService {
         transaction,
       };
     });
+  }
+
+  async getTransactions(userId: string) {
+    const wallet = await this.prisma.wallet.findUnique({
+      where: { userId },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!wallet) {
+      throw new NotFoundException('Wallet not found');
+    }
+
+    const transactions = await this.prisma.walletTransaction.findMany({
+      where: {
+        walletId: wallet.id,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 50,
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        balanceBefore: true,
+        balanceAfter: true,
+        description: true,
+        createdAt: true,
+      },
+    });
+
+    return transactions;
   }
 }
