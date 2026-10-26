@@ -11,5 +11,9 @@ export interface SmsProvider {
 
   getBalance(): number;
 
-  send(to: string[], message: string): Promise<SmsProviderResult>;
+  send(
+    to: string[],
+    message: string,
+    creditsPerRecipient?: number,
+  ): Promise<SmsProviderResult>;
 }

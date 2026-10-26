@@ -15,7 +15,10 @@ export class MockSmsProvider implements SmsProvider {
   private readonly failureRate: number;
 
   constructor(config: MockSmsProviderConfig) {
-    if (!Number.isInteger(config.initialBalance) || config.initialBalance < 0) {
+    if (
+      !Number.isSafeInteger(config.initialBalance) ||
+      config.initialBalance < 0
+    ) {
       throw new Error('Provider balance must be a non-negative integer');
     }
 
@@ -37,7 +40,11 @@ export class MockSmsProvider implements SmsProvider {
     return this.balance;
   }
 
-  async send(to: string[], message: string): Promise<SmsProviderResult> {
+  async send(
+    to: string[],
+    message: string,
+    creditsPerRecipient = 1,
+  ): Promise<SmsProviderResult> {
     if (to.length === 0 || !message.trim()) {
       return {
         success: false,
@@ -46,7 +53,23 @@ export class MockSmsProvider implements SmsProvider {
       };
     }
 
-    if (this.balance < to.length) {
+    if (
+      !Number.isSafeInteger(creditsPerRecipient) ||
+      creditsPerRecipient <= 0
+    ) {
+      return {
+        success: false,
+        provider: this.name,
+        error: 'Invalid SMS credit cost',
+      };
+    }
+
+    const requiredCredits = to.length * creditsPerRecipient;
+
+    if (
+      !Number.isSafeInteger(requiredCredits) ||
+      this.balance < requiredCredits
+    ) {
       return {
         success: false,
         provider: this.name,
@@ -62,7 +85,7 @@ export class MockSmsProvider implements SmsProvider {
       };
     }
 
-    this.balance -= to.length;
+    this.balance -= requiredCredits;
 
     return {
       success: true,
