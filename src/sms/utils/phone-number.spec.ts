@@ -38,4 +38,22 @@ describe('normalizeNepaliPhoneNumber', () => {
       'Invalid Nepali mobile number',
     );
   });
+
+  it('should reject an empty phone number', () => {
+    expect(() => normalizeNepaliPhoneNumber('')).toThrow(
+      'Invalid Nepali mobile number',
+    );
+  });
+
+  it('should reject a number with special characters', () => {
+    expect(() => normalizeNepaliPhoneNumber('984-123-4567')).toThrow(
+      'Invalid Nepali mobile number',
+    );
+  });
+
+  it('should reject a number with an unsupported country prefix', () => {
+    expect(() => normalizeNepaliPhoneNumber('+14155552671')).toThrow(
+      'Invalid Nepali mobile number',
+    );
+  });
 });
