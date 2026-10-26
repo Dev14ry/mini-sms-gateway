@@ -36,6 +36,11 @@ export class AuthService {
         name: dto.name.trim(),
         email,
         passwordHash,
+        wallet: {
+          create: {
+            balance: 0,
+          },
+        },
       },
       select: {
         id: true,
