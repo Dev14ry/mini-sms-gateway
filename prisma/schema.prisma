@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -15,7 +16,8 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  wallet Wallet?
+  wallet   Wallet?
+  smsLogs  SmsLog[]
 }
 
 model Wallet {
@@ -44,8 +46,43 @@ model WalletTransaction {
   @@index([walletId, createdAt])
 }
 
+model SmsLog {
+  id                String       @id @default(uuid()) @db.Uuid
+  requestId         String       @db.Uuid
+  userId            String       @db.Uuid
+  recipient         String
+  message           String
+  encoding          SmsEncoding
+  parts             Int
+  credits           Int
+  status            SmsLogStatus @default(PENDING)
+  provider          String?
+  providerMessageId String?
+  error             String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, status, createdAt])
+  @@index([recipient, createdAt])
+  @@index([requestId])
+}
+
 enum WalletTransactionType {
   CREDIT
   DEBIT
   REFUND
+}
+
+enum SmsEncoding {
+  GSM_7
+  UNICODE
+}
+
+enum SmsLogStatus {
+  PENDING
+  SENT
+  FAILED
 }
