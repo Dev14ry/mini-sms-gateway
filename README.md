@@ -1,126 +1,361 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Mini SMS Gateway
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A backend SMS gateway built with NestJS, TypeScript, PostgreSQL, and Prisma. It provides JWT authentication, prepaid wallet credits, SMS cost calculation, mock SMS providers, automatic provider failover, delivery logs, and provider health metrics.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- **Authentication:** User registration and login using JWT.
+- **Wallet management:** Prepaid credits with transaction history.
+- **SMS validation:** Validates recipient numbers and normalizes Nepali mobile numbers.
+- **SMS cost calculation:** Calculates message encoding, SMS parts, and required credits.
+- **Mock SMS providers:** Supports multiple providers with configurable priorities, balances, and failure rates.
+- **Provider failover:** Automatically tries the next provider when a provider fails.
+- **Atomic wallet deduction:** Prevents concurrent requests from spending more credits than the available balance.
+- **Automatic refunds:** Refunds credits when all SMS providers fail.
+- **SMS logs:** Paginated logs with status, date, and recipient filters.
+- **Provider health:** Reports provider balances and delivery success rates over the previous 24 hours.
+- **Automated tests:** Unit tests and end-to-end test support.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tech Stack
 
-## Project setup
+- Node.js
+- NestJS
+- TypeScript
+- PostgreSQL
+- Prisma ORM
+- JWT authentication
+- Jest
 
-```bash
-$ npm install
-```
+## Prerequisites
 
-## Compile and run the project
+Install the following before running the project:
 
-```bash
-# development
-$ npm run start
+- Node.js compatible with the project configuration
+- npm
+- PostgreSQL
 
-# watch mode
-$ npm run start:dev
+## Getting Started
 
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
+### 1. Clone the repository
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+git clone <YOUR_GITHUB_REPOSITORY_URL>
+cd mini-sms-gateway
 ```
 
-## Deployment
+Replace the repository URL with your actual GitHub repository URL.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 2. Install dependencies
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm install
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 3. Configure environment variables
 
-## Observability
+Create a `.env` file in the project root.
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/mini_sms_gateway?schema=public"
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+JWT_SECRET="replace-with-a-secure-random-secret"
+JWT_EXPIRES_IN="1h"
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+ROUTE_A_FAILURE_RATE=0.3
+ROUTE_B_FAILURE_RATE=0.1
 
-This project is already instrumented. To connect it, run this and approve the code it prints at [observe.nestjs.com/link](https://observe.nestjs.com/link) - signing up for free if you have no account:
+# Development only
+ALLOW_DEV_CREDIT=false
+```
+
+Update the database credentials to match your PostgreSQL configuration.
+
+Provider failure rates are probabilities between `0` and `1`. For example, `0.3` represents a 30% simulated failure rate.
+
+Keep `.env` out of version control. Never commit real database credentials or JWT secrets.
+
+### 4. Set up the database
+
+Create the PostgreSQL database configured in `DATABASE_URL`, then run:
 
 ```bash
-$ npx @nestjs/observe link
+npx prisma migrate dev
+npx prisma generate
 ```
 
-It writes the app key and secret into `.env` and makes every `nest start` script (`start`, `start:dev`, `start:debug`) load it. In production, set `OBSERVE_APP_KEY` and `OBSERVE_APP_SECRET` in the environment instead.
+Use the existing migrations to create the database schema.
 
-Or do it by hand: create an application and an API key at [observe.nestjs.com](https://observe.nestjs.com), and set the pair as `OBSERVE_APP_KEY` and `OBSERVE_APP_SECRET` in the environment the app runs in.
+### 5. Start the application
 
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
+Development mode:
 
-## Resources
+```bash
+npm run start:dev
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+The default local base URL is:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```text
+http://localhost:3000
+```
 
-## Support
+Use the port configured by your application if it differs.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## API Endpoints
 
-## Stay in touch
+Protected endpoints require a JWT access token:
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```http
+Authorization: Bearer <access_token>
+```
+
+| Method | Endpoint         | Description                       |
+| ------ | ---------------- | --------------------------------- |
+| POST   | `/auth/register` | Register a user                   |
+| POST   | `/auth/login`    | Authenticate a user               |
+| GET    | `/health`        | Check application/database health |
+| POST   | `/sms/calculate` | Calculate SMS parts and cost      |
+| POST   | `/sms/send`      | Send SMS using provider failover  |
+| GET    | `/sms/logs`      | Retrieve paginated SMS logs       |
+| GET    | `/routes/health` | Retrieve provider health metrics  |
+
+Authentication route names should be verified against the implemented controller before submission.
+
+### Register and Login
+
+Register a user and then log in to obtain a JWT access token.
+
+Use the token for protected SMS and route endpoints.
+
+### Calculate SMS Cost
+
+Example request:
+
+```http
+POST /sms/calculate
+Content-Type: application/json
+Authorization: Bearer <access_token>
+```
+
+```json
+{
+  "to": ["9841234567"],
+  "message": "Hello from Mini SMS Gateway"
+}
+```
+
+The response should describe the calculated SMS encoding, message parts, and required credits according to the implementation.
+
+### Send SMS
+
+```http
+POST /sms/send
+Content-Type: application/json
+Authorization: Bearer <access_token>
+```
+
+```json
+{
+  "to": ["9841234567"],
+  "message": "Hello from Mini SMS Gateway"
+}
+```
+
+A successful response includes the request ID, delivery status, selected provider, recipient information, credits charged, and remaining wallet balance.
+
+If the wallet does not have enough credits, the request is rejected.
+
+If all providers fail, the deducted credits are refunded.
+
+### Retrieve SMS Logs
+
+```http
+GET /sms/logs?page=1&limit=10
+Authorization: Bearer <access_token>
+```
+
+Available filters include:
+
+- `page`
+- `limit`
+- `status`
+- `number`
+- `from`
+- `to`
+
+Check the controller implementation for the exact accepted date formats and parameter validation.
+
+### Check Provider Health
+
+```http
+GET /routes/health
+Authorization: Bearer <access_token>
+```
+
+The response includes provider priority, balance, successful attempts, failed attempts, success rate, health percentage, and status.
+
+## SMS Pricing and Encoding
+
+SMS cost depends on the message encoding and the number of SMS parts calculated by the application.
+
+The gateway supports GSM 7-bit and Unicode encoding. Unicode messages, including many Nepali-language messages, can have different part limits from GSM 7-bit messages.
+
+The calculator determines the required parts and credits. Refer to the implementation for the exact pricing rules and encoding thresholds.
+
+## Provider Routing and Failover
+
+Providers are ordered by priority.
+
+1. The gateway validates the request and calculates its cost.
+2. It atomically deducts the required credits from the user's wallet.
+3. It creates pending SMS logs.
+4. It attempts delivery through the highest-priority provider.
+5. If delivery fails, it records the failed attempt and tries the next provider.
+6. If a provider succeeds, the SMS logs are marked as sent.
+7. If every provider fails, the gateway refunds the wallet credits and marks the logs as failed.
+
+Provider balances and failure rates are configurable through environment variables. The mock provider balances are maintained in application memory, so they reset when the process restarts.
+
+## Wallet Safety and Concurrency
+
+Wallet deductions use a conditional database update that only succeeds when the current balance is sufficient.
+
+Conceptually, the update is equivalent to:
+
+```sql
+UPDATE "Wallet"
+SET balance = balance - 1
+WHERE id = $1
+  AND balance >= 1;
+```
+
+The application checks the number of affected rows. If no wallet row is updated, the request is rejected for insufficient balance.
+
+The actual implementation uses Prisma rather than executing this example SQL directly.
+
+This protects the wallet from concurrent requests overspending the available credits.
+
+### Concurrency Test
+
+A local concurrency test sent 20 SMS requests simultaneously using a wallet with 10 credits and providers configured with zero simulated failure rates.
+
+Observed results:
+
+| Metric                  | Result |
+| ----------------------- | -----: |
+| Concurrent requests     |     20 |
+| Successful SMS requests |     10 |
+| Rejected requests       |     10 |
+| Network errors          |      0 |
+| Final wallet balance    |      0 |
+
+This verifies that the wallet did not become negative during the tested scenario.
+
+To reproduce the test, use a dedicated development account with exactly 10 credits, ensure provider balances are sufficient, set both provider failure rates to `0`, restart the application, and run the concurrency test script.
+
+Do not run this test against production accounts.
+
+## Provider Health Formula
+
+Provider health is calculated from recorded provider attempts during the previous 24 hours.
+
+```text
+successRate = successfulAttempts / totalAttempts * 100
+
+healthPercentage = successRate
+```
+
+Where:
+
+- `successfulAttempts` is the number of successful provider attempts.
+- `totalAttempts` is the sum of successful and failed attempts.
+- `healthPercentage` uses the same percentage as the success rate.
+
+If no attempts exist during the measurement window, the success rate is `null` and the provider status is `NO_DATA`.
+
+The current implementation classifies a provider as:
+
+- `HEALTHY`: success rate is at least 80%.
+- `DEGRADED`: success rate is below 80%.
+- `NO_DATA`: no recorded attempts exist during the window.
+
+These metrics reflect recorded mock-provider attempts, not real telecommunications carrier availability.
+
+## Testing
+
+Run the automated test suite:
+
+```bash
+npm test -- --runInBand
+```
+
+Run TypeScript type checking:
+
+```bash
+npx tsc --noEmit
+```
+
+Run end-to-end tests if configured:
+
+```bash
+npm run test:e2e
+```
+
+The project has passed the following checks during development:
+
+- 5 Jest test suites passed.
+- 38 automated tests passed.
+- TypeScript type checking completed without errors.
+- Provider failover was manually tested.
+- All-provider failure and refund behavior was manually tested.
+- Concurrent wallet deduction was manually tested.
+
+Re-run these checks against the final code before submitting.
+
+## Development Credits
+
+The project includes a development-only credit script.
+
+Example:
+
+```bash
+npx ts-node scripts/add-dev-credits.ts <email> <credits>
+```
+
+The script requires `ALLOW_DEV_CREDIT=true` and refuses to run when `NODE_ENV=production`.
+
+Only use it with development accounts and a development database. It adds credits rather than setting a wallet to an exact balance.
+
+## Design Decisions
+
+- **PostgreSQL:** Provides persistent relational storage and transactional wallet operations.
+- **Prisma:** Provides typed database access and migration management.
+- **Conditional wallet updates:** Prevent overspending when multiple requests compete for the same balance.
+- **Provider abstraction:** Makes it possible to replace mock providers with real SMS provider integrations.
+- **Provider attempt records:** Preserve individual success and failure outcomes for health calculations.
+- **Refunds:** Restore charged credits when all provider attempts fail.
+- **Environment configuration:** Allows failure rates and provider balances to be changed without editing source code.
+
+## Limitations
+
+- Providers are mocked; no real SMS messages are delivered.
+- Mock provider balances are in memory and reset after a restart.
+- No durable queue or background retry system is included unless separately configured.
+- Provider health is based on recorded attempts and does not guarantee actual carrier availability.
+- The concurrency test covers the tested local scenario, not every possible distributed deployment failure.
+
+## Future Improvements
+
+- Integrate real SMS providers.
+- Add durable background jobs using BullMQ and Redis.
+- Add per-user rate limiting.
+- Implement delivery webhooks and delivery-status updates.
+- Add idempotency keys to prevent duplicate sends during retries.
+- Add stronger monitoring, structured logging, and alerting.
+- Add Docker Compose for repeatable local development.
+- Add integration tests for transaction rollback, refunds, and concurrent requests.
+- Add production-grade secrets management and deployment configuration.
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+This project was developed as a backend engineering assignment. Add a license file if the repository will be distributed under a specific open-source license.
