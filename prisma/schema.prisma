@@ -16,8 +16,8 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  wallet   Wallet?
-  smsLogs  SmsLog[]
+  wallet  Wallet?
+  smsLogs SmsLog[]
 }
 
 model Wallet {
@@ -29,6 +29,8 @@ model Wallet {
 
   user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions WalletTransaction[]
+
+  @@index([userId])
 }
 
 model WalletTransaction {
@@ -67,6 +69,18 @@ model SmsLog {
   @@index([userId, createdAt])
   @@index([userId, status, createdAt])
   @@index([recipient, createdAt])
+  @@index([requestId])
+}
+
+model SmsProviderAttempt {
+  id        String   @id @default(uuid()) @db.Uuid
+  requestId String   @db.Uuid
+  provider  String
+  success   Boolean
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([provider, createdAt])
   @@index([requestId])
 }
 

@@ -100,7 +100,7 @@ export class SmsService {
     const requestId = randomUUID();
     const encoding = calculation.encoding === 'GSM-7' ? 'GSM_7' : 'UNICODE';
 
-    // Deduct credits and create logs atomically.
+    // Deduct credits and create SMS logs atomically.
     const debit = await this.prisma.$transaction(async (tx) => {
       const wallet = await tx.wallet.findUnique({
         where: { userId },
@@ -167,49 +167,85 @@ export class SmsService {
 
     const attempts: string[] = [];
 
-    // Providers are already ordered by priority in the registry.
+    // Providers are ordered by priority in the registry.
     for (const provider of this.providers.getProviders()) {
+      let result: Awaited<ReturnType<typeof provider.send>> | undefined;
+      let providerError: string | undefined;
+
+      // Catch provider errors separately so a database error while saving
+      // an attempt is not mistaken for a provider delivery failure.
       try {
-        const result = await provider.send(
-          recipients,
-          message,
-          creditsPerRecipient,
-        );
-
-        if (result.success) {
-          await this.prisma.smsLog.updateMany({
-            where: {
-              requestId,
-              userId,
-              status: 'PENDING',
-            },
-            data: {
-              status: 'SENT',
-              provider: provider.name,
-              providerMessageId: result.messageId,
-              error: null,
-            },
-          });
-
-          return {
-            requestId,
-            status: 'SENT',
-            provider: provider.name,
-            recipients,
-            partsPerRecipient: calculation.parts,
-            creditsCharged: totalCredits,
-            walletBalance: debit.walletBalance,
-          };
-        }
-
-        attempts.push(`${provider.name}: ${result.error ?? 'Sending failed'}`);
+        result = await provider.send(recipients, message, creditsPerRecipient);
       } catch (error: unknown) {
-        attempts.push(
-          `${provider.name}: ${
-            error instanceof Error ? error.message : 'Provider error'
-          }`,
-        );
+        providerError =
+          error instanceof Error ? error.message : 'Provider error';
       }
+
+      // Record thrown provider errors.
+      if (providerError !== undefined) {
+        await this.prisma.smsProviderAttempt.create({
+          data: {
+            requestId,
+            provider: provider.name,
+            success: false,
+            error: providerError,
+          },
+        });
+
+        attempts.push(`${provider.name}: ${providerError}`);
+        continue;
+      }
+
+      // Record unsuccessful provider responses.
+      if (!result || !result.success) {
+        const errorMessage = result?.error ?? 'Sending failed';
+
+        await this.prisma.smsProviderAttempt.create({
+          data: {
+            requestId,
+            provider: provider.name,
+            success: false,
+            error: errorMessage,
+          },
+        });
+
+        attempts.push(`${provider.name}: ${errorMessage}`);
+        continue;
+      }
+
+      // Record successful provider delivery.
+      await this.prisma.smsProviderAttempt.create({
+        data: {
+          requestId,
+          provider: provider.name,
+          success: true,
+          error: null,
+        },
+      });
+
+      await this.prisma.smsLog.updateMany({
+        where: {
+          requestId,
+          userId,
+          status: 'PENDING',
+        },
+        data: {
+          status: 'SENT',
+          provider: provider.name,
+          providerMessageId: result.messageId,
+          error: null,
+        },
+      });
+
+      return {
+        requestId,
+        status: 'SENT',
+        provider: provider.name,
+        recipients,
+        partsPerRecipient: calculation.parts,
+        creditsCharged: totalCredits,
+        walletBalance: debit.walletBalance,
+      };
     }
 
     const failureMessage = attempts.join('; ') || 'All SMS providers failed';
