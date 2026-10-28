@@ -1,0 +1,43 @@
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sms_gateway
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_password_change_me}
+      POSTGRES_DB: mini_sms_gateway
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sms_gateway -d mini_sms_gateway"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: "postgresql://sms_gateway:${POSTGRES_PASSWORD:-local_dev_password_change_me}@db:5432/mini_sms_gateway?schema=public"
+      ALLOW_DEV_CREDIT: "false"
+      ROUTE_A_BALANCE: ${ROUTE_A_BALANCE:-10000}
+      ROUTE_A_FAILURE_RATE: ${ROUTE_A_FAILURE_RATE:-0.3}
+      ROUTE_B_BALANCE: ${ROUTE_B_BALANCE:-10000}
+      ROUTE_B_FAILURE_RATE: ${ROUTE_B_FAILURE_RATE:-0.1}
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
